@@ -78,3 +78,33 @@ async fn connect(
 
     crate::tls::client_async_tls_with_config(request, socket, config, connector).await
 }
+
+async fn connect_with_tcpstream(
+    request: Request,
+    tcpstream: TcpStream,
+    config: Option<WebSocketConfig>,
+    disable_nagle: bool,
+    connector: Option<Connector>,
+) -> Result<(WebSocketStream<MaybeTlsStream<TcpStream>>, Response), Error> {
+    let socket = tcpstream;
+
+    if disable_nagle {
+        socket.set_nodelay(true)?;
+    }
+
+    crate::tls::client_async_tls_with_config(request, socket, config, connector).await
+}
+
+/// connect to URL, with provided tcp stream object
+pub async fn connect_async_tcpstream<R>(
+    request: R,
+    tcpstream: TcpStream,
+    config: Option<WebSocketConfig>,
+    disable_nagle: bool,
+) -> Result<(WebSocketStream<MaybeTlsStream<TcpStream>>, Response), Error>
+where
+    R: IntoClientRequest + Unpin,
+{
+    connect_with_tcpstream(request.into_client_request()?, tcpstream, config, disable_nagle, None)
+        .await
+}
